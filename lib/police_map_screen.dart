@@ -14,7 +14,7 @@ class _PoliceMapScreenState extends State<PoliceMapScreen> {
   GoogleMapController? _mapController;
   Position? _currentPosition;
   final Set<Marker> _markers = {};
-  final String googleApiKey = dotenv.env['GOOGLE_API_KEY'] ?? '';
+  String get googleApiKey => dotenv.env['GOOGLE_API_KEY'] ?? '';
 
   @override
   void initState() {
