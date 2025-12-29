@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class PoliceMapScreen extends StatefulWidget {
   @override
@@ -13,7 +14,7 @@ class _PoliceMapScreenState extends State<PoliceMapScreen> {
   GoogleMapController? _mapController;
   Position? _currentPosition;
   final Set<Marker> _markers = {};
-  final String googleApiKey = 'AIzaSyD7ZhWk_bqj8mk3b9vAMMV-XNiIYJOfZzY';
+  final String googleApiKey = dotenv.env['GOOGLE_API_KEY'] ?? '';
 
   @override
   void initState() {
