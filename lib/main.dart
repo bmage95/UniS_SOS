@@ -3,8 +3,12 @@ import 'package:url_launcher/url_launcher.dart';
 import 'police_map_screen.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:telephony/telephony.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() => runApp(MyApp());
+void main() async {
+  await dotenv.load(fileName: ".env");
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
   @override

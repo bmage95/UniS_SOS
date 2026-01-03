@@ -25,29 +25,73 @@ class _PoliceMapScreenState extends State<PoliceMapScreen> {
   }
 
   Future<void> _getUserLocation() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // 1. Check Service
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      print("Location services disabled");
+      print("⚠️ Location services are disabled.");
+      // FALLBACK: Set a default location (e.g., New Delhi) so map loads
+      _setDefaultLocation();
       return;
     }
 
-    LocationPermission permission = await Geolocator.checkPermission();
+    // 2. Check Permissions
+    permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.deniedForever || permission == LocationPermission.denied) {
-        print("Location permission denied");
+      if (permission == LocationPermission.denied) {
+        print("⚠️ Location permission denied.");
+        _setDefaultLocation(); // FALLBACK
         return;
       }
     }
 
-    Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
+    if (permission == LocationPermission.deniedForever) {
+      print("⚠️ Location permission denied forever.");
+      _setDefaultLocation(); // FALLBACK
+      return;
+    }
 
+    // 3. Get Position
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+
+      setState(() {
+        _currentPosition = position;
+      });
+
+      _fetchNearbyPoliceStations(position.latitude, position.longitude);
+
+    } catch (e) {
+      print("❌ Error getting location: $e");
+      _setDefaultLocation();
+    }
+  }
+
+  // Add this helper function
+  void _setDefaultLocation() {
     setState(() {
-      _currentPosition = position;
+      // Default to New Delhi (28.6139, 77.2090) or your preferred default
+      _currentPosition = Position(
+          latitude: 28.6139,
+          longitude: 77.2090,
+          timestamp: DateTime.now(),
+          accuracy: 0,
+          altitude: 0,
+          heading: 0,
+          speed: 0,
+          speedAccuracy: 0,
+          altitudeAccuracy: 0,
+          headingAccuracy: 0
+      );
     });
 
-    _fetchNearbyPoliceStations(position.latitude, position.longitude);
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Location not found. Using default location."))
+    );
   }
 
   Future<void> _fetchNearbyPoliceStations(double lat, double lng) async {
