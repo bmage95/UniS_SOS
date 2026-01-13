@@ -14,7 +14,6 @@ void main() async {
     print("✅ Environment variables loaded successfully");
   } catch (e) {
     print("⚠️ Failed to load .env file: $e");
-    // Continue anyway - app can still work with hardcoded fallbacks
   }
   
   runApp(MyApp());
@@ -50,7 +49,7 @@ class RadarHomePage extends StatelessWidget {
   }
 
   Future<void> _sendEmergencySMS() async {
-    // SMS sending only works on Android
+    // autosend only on android
     if (!Platform.isAndroid) {
       print("ℹ️ SMS auto-send is only available on Android");
       // On iOS, open Messages app with pre-filled text
@@ -84,7 +83,6 @@ class RadarHomePage extends StatelessWidget {
 
   void _openMessagesApp() async {
     try {
-      // Get location for the message
       Position? position;
       try {
         position = await Geolocator.getCurrentPosition(
@@ -116,12 +114,12 @@ class RadarHomePage extends StatelessWidget {
   }
 
   void _handleRadarTap(BuildContext context) {
-    _launchDialer(); // 1. Open dialer
-    _sendEmergencySMS(); // 2. Send auto SMS
+    _launchDialer(); // Open dialer
+    _sendEmergencySMS(); // Send auto SMS
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => PoliceMapScreen()),
-    ); // 3. Show police station map
+    ); // how police station map
   }
 
   @override

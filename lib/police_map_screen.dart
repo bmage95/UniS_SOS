@@ -14,7 +14,7 @@ class _PoliceMapScreenState extends State<PoliceMapScreen> {
   GoogleMapController? _mapController;
   Position? _currentPosition;
   final Set<Marker> _markers = {};
-  String get googleApiKey => dotenv.env['GOOGLE_API_KEY'] ?? '';
+  String get googleApiKey => dotenv.env['GOOGLE_API_KEY'] ?? 'env issue'; //
 
   @override
   void initState() {
@@ -36,33 +36,32 @@ class _PoliceMapScreenState extends State<PoliceMapScreen> {
     bool serviceEnabled;
     LocationPermission permission;
 
-    // 1. Check Service
+    // Check Service
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       print("⚠️ Location services are disabled.");
-      // FALLBACK: Set a default location (e.g., New Delhi) so map loads
-      _setDefaultLocation();
+      _setDefaultLocation();       // FALLBACK? prolly not needed but just in case
       return;
     }
 
-    // 2. Check Permissions
+    // Check Permissions
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
         print("⚠️ Location permission denied.");
-        _setDefaultLocation(); // FALLBACK
+        _setDefaultLocation(); // FALLBACK? prolly not needed but just in case
         return;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
       print("⚠️ Location permission denied forever.");
-      _setDefaultLocation(); // FALLBACK
+      _setDefaultLocation(); // FALLBACK? prolly not needed but just in case
       return;
     }
 
-    // 3. Get Position
+    // Get Position
     try {
       Position position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high);
@@ -106,7 +105,7 @@ class _PoliceMapScreenState extends State<PoliceMapScreen> {
     print("🔍 Fetching nearby police stations for location: ($lat, $lng)");
 
     try {
-      // Using NEW Places API
+      // Using NEW Places API? check docs for correct endpoint and request body
       final String url = 'https://places.googleapis.com/v1/places:searchNearby';
       
       final requestBody = json.encode({
@@ -200,7 +199,7 @@ class _PoliceMapScreenState extends State<PoliceMapScreen> {
           if (nearestLat != null && nearestLng != null) {
             print("🎯 Nearest police station: $nearestName at ($nearestLat, $nearestLng)");
 
-          // Add RED marker for nearest
+          // Adding RED marker for nearest
           final nearestMarker = Marker(
             markerId: MarkerId('nearest'),
             position: LatLng(nearestLat, nearestLng),
