@@ -20,8 +20,16 @@ class _PoliceMapScreenState extends State<PoliceMapScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _getUserLocation();
+      if (mounted) {
+        _getUserLocation();
+      }
     });
+  }
+
+  @override
+  void dispose() {
+    _mapController?.dispose();
+    super.dispose();
   }
 
   Future<void> _getUserLocation() async {
@@ -97,60 +105,100 @@ class _PoliceMapScreenState extends State<PoliceMapScreen> {
   Future<void> _fetchNearbyPoliceStations(double lat, double lng) async {
     print("🔍 Fetching nearby police stations for location: ($lat, $lng)");
 
-    final String url =
-        'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=$lat,$lng&radius=2000&type=police&key=$googleApiKey';
+    try {
+      // Using NEW Places API
+      final String url = 'https://places.googleapis.com/v1/places:searchNearby';
+      
+      final requestBody = json.encode({
+        "includedTypes": ["police"],
+        "maxResultCount": 10,
+        "locationRestriction": {
+          "circle": {
+            "center": {
+              "latitude": lat,
+              "longitude": lng
+            },
+            "radius": 2000.0
+          }
+        }
+      });
 
-    final response = await http.get(Uri.parse(url));
+      print("🌐 API URL: $url");
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': googleApiKey,
+          'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location,places.id',
+        },
+        body: requestBody,
+      );
+
+    print("📡 Response status: ${response.statusCode}");
+    print("📄 Response body: ${response.body}");
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
 
-      if (data['results'] != null && data['results'].isNotEmpty) {
-        print("✅ Found ${data['results'].length} police stations");
+      if (data['places'] != null && data['places'].isNotEmpty) {
+        print("✅ Found ${data['places'].length} police stations");
 
         double minDistance = double.infinity;
         Map<String, dynamic>? nearestPlace;
 
-        for (var place in data['results']) {
-          final placeLat = place['geometry']['location']['lat'];
-          final placeLng = place['geometry']['location']['lng'];
-          final name = place['name'];
-          final vicinity = place['vicinity'];
+        for (var place in data['places']) {
+          try {
+            final placeLat = place['location']?['latitude'];
+            final placeLng = place['location']?['longitude'];
+            final name = place['displayName']?['text'] ?? 'Unknown Police Station';
+            final vicinity = place['formattedAddress'] ?? 'No address';
+            final placeId = place['id'] ?? 'unknown_${DateTime.now().millisecondsSinceEpoch}';
 
-          final distance = Geolocator.distanceBetween(
-            _currentPosition!.latitude,
-            _currentPosition!.longitude,
-            placeLat,
-            placeLng,
-          );
+            if (placeLat == null || placeLng == null) {
+              print("⚠️ Skipping place with missing location data");
+              continue;
+            }
 
-          print("📍 Station: $name, Vicinity: $vicinity, Distance: ${distance.toStringAsFixed(2)} m");
+            final distance = Geolocator.distanceBetween(
+              _currentPosition!.latitude,
+              _currentPosition!.longitude,
+              placeLat,
+              placeLng,
+            );
 
-          // Add blue marker for each
-          final marker = Marker(
-            markerId: MarkerId(place['place_id']),
-            position: LatLng(placeLat, placeLng),
-            infoWindow: InfoWindow(
-              title: name,
-              snippet: vicinity,
-            ),
-            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
-          );
+            print("📍 Station: $name, Vicinity: $vicinity, Distance: ${distance.toStringAsFixed(2)} m");
 
-          setState(() => _markers.add(marker));
+            // Add blue marker for each
+            final marker = Marker(
+              markerId: MarkerId(placeId),
+              position: LatLng(placeLat, placeLng),
+              infoWindow: InfoWindow(
+                title: name,
+                snippet: vicinity,
+              ),
+              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+            );
 
-          if (distance < minDistance) {
-            minDistance = distance;
-            nearestPlace = place;
+            setState(() => _markers.add(marker));
+
+            if (distance < minDistance) {
+              minDistance = distance;
+              nearestPlace = place;
+            }
+          } catch (e) {
+            print("⚠️ Error processing place: $e");
+            continue;
           }
         }
 
         if (nearestPlace != null) {
-          final nearestLat = nearestPlace['geometry']['location']['lat'];
-          final nearestLng = nearestPlace['geometry']['location']['lng'];
-          final nearestName = nearestPlace['name'];
+          final nearestLat = nearestPlace['location']?['latitude'];
+          final nearestLng = nearestPlace['location']?['longitude'];
+          final nearestName = nearestPlace['displayName']?['text'] ?? 'Nearest Police Station';
+          final nearestAddress = nearestPlace['formattedAddress'] ?? 'No address';
 
-          print("🎯 Nearest police station: $nearestName at ($nearestLat, $nearestLng)");
+          if (nearestLat != null && nearestLng != null) {
+            print("🎯 Nearest police station: $nearestName at ($nearestLat, $nearestLng)");
 
           // Add RED marker for nearest
           final nearestMarker = Marker(
@@ -158,7 +206,7 @@ class _PoliceMapScreenState extends State<PoliceMapScreen> {
             position: LatLng(nearestLat, nearestLng),
             infoWindow: InfoWindow(
               title: '🚨 Nearest Police Station',
-              snippet: nearestPlace['vicinity'],
+              snippet: nearestAddress,
             ),
             icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
           );
@@ -175,6 +223,9 @@ class _PoliceMapScreenState extends State<PoliceMapScreen> {
               duration: Duration(seconds: 3),
             ),
           );
+          } else {
+            print("⚠️ Nearest place has missing location data.");
+          }
         } else {
           print("⚠️ No nearest place found.");
         }
@@ -184,6 +235,14 @@ class _PoliceMapScreenState extends State<PoliceMapScreen> {
     } else {
       print("❌ Failed to fetch places: ${response.statusCode}");
       print("Response body: ${response.body}");
+    }
+    } catch (e) {
+      print("❌ Error fetching police stations: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to load police stations")),
+        );
+      }
     }
   }
 

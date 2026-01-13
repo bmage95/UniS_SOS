@@ -28,5 +28,7 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSLocationUsageDescription</key>
+	<string>This app needs access to your location to send emergency alerts with your coordinates and show nearby police stations.</string>
 </dict>
 </plist>

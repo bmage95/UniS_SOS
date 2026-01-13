@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'police_map_screen.dart';
@@ -6,7 +7,16 @@ import 'package:telephony/telephony.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
-  await dotenv.load(fileName: ".env");
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  try {
+    await dotenv.load(fileName: ".env");
+    print("✅ Environment variables loaded successfully");
+  } catch (e) {
+    print("⚠️ Failed to load .env file: $e");
+    // Continue anyway - app can still work with hardcoded fallbacks
+  }
+  
   runApp(MyApp());
 }
 
@@ -40,14 +50,22 @@ class RadarHomePage extends StatelessWidget {
   }
 
   Future<void> _sendEmergencySMS() async {
-    final bool? smsPermission = await telephony.requestSmsPermissions;
-
-    if (!smsPermission!) {
-      print("❌ SMS permission not granted");
+    // SMS sending only works on Android
+    if (!Platform.isAndroid) {
+      print("ℹ️ SMS auto-send is only available on Android");
+      // On iOS, open Messages app with pre-filled text
+      _openMessagesApp();
       return;
     }
 
     try {
+      final bool? smsPermission = await telephony.requestSmsPermissions;
+
+      if (smsPermission == null || !smsPermission) {
+        print("❌ SMS permission not granted");
+        return;
+      }
+
       Position position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high);
 
@@ -61,6 +79,39 @@ class RadarHomePage extends StatelessWidget {
       print("✅ SMS sent to emergency contacts.");
     } catch (e) {
       print("⚠️ Error sending SMS: $e");
+    }
+  }
+
+  void _openMessagesApp() async {
+    try {
+      // Get location for the message
+      Position? position;
+      try {
+        position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high);
+      } catch (e) {
+        print("⚠️ Could not get location: $e");
+      }
+
+      final message = position != null
+          ? "🚨 Emergency! Lat: ${position.latitude}, Long: ${position.longitude}"
+          : "🚨 Emergency! Please help!";
+
+      // Open Messages app with pre-filled text (iOS)
+      final Uri smsUri = Uri(
+        scheme: 'sms',
+        path: emergencyContacts.first,
+        queryParameters: {'body': message},
+      );
+
+      if (await canLaunchUrl(smsUri)) {
+        await launchUrl(smsUri);
+        print("📱 Opened Messages app");
+      } else {
+        print("❌ Could not open Messages app");
+      }
+    } catch (e) {
+      print("⚠️ Error opening Messages: $e");
     }
   }
 
