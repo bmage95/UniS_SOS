@@ -1,139 +1,81 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'police_map_screen.dart';
+import 'pages/police_map_screen.dart';
+import 'pages/newsletter_screen.dart';
+import 'pages/sos_screen.dart';
+import 'pages/settings_screen.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:telephony/telephony.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'widget/bottomnavbar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   try {
     await dotenv.load(fileName: ".env");
     print("✅ Environment variables loaded successfully");
   } catch (e) {
     print("⚠️ Failed to load .env file: $e");
   }
-  
-  runApp(MyApp());
+
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Emergency SOS',
       debugShowCheckedModeBanner: false,
-      home: RadarHomePage(),
+      home: const HomeShell(),
     );
   }
 }
 
-class RadarHomePage extends StatelessWidget {
-  final double imageSize = 150;
-  final Telephony telephony = Telephony.instance;
+class HomeShell extends StatefulWidget {
+  const HomeShell({super.key});
 
-  final List<String> emergencyContacts = [
-    '+919811403774',
-    '+919404738170'
+  @override
+  State<HomeShell> createState() => _HomeShellState();
+}
+
+class _HomeShellState extends State<HomeShell> {
+  int _currentIndex = 0;
+
+  late final List<Widget> _pages = [
+    InShortsScreen(),
+    RadarHomePage(onNavigateToMap: _navigateToMap),
+    const SettingsScreen(),
   ];
 
-  void _launchDialer() async {
-    final Uri uri = Uri(scheme: 'tel', path: '112');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      print("Dialer could not be launched");
-    }
-  }
-
-  Future<void> _sendEmergencySMS() async {
-    // autosend only on android
-    if (!Platform.isAndroid) {
-      print("ℹ️ SMS auto-send is only available on Android");
-      // On iOS, open Messages app with pre-filled text
-      _openMessagesApp();
-      return;
-    }
-
-    try {
-      final bool? smsPermission = await telephony.requestSmsPermissions;
-
-      if (smsPermission == null || !smsPermission) {
-        print("❌ SMS permission not granted");
-        return;
-      }
-
-      Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
-
-      final message =
-          "🚨 Emergency!\nLat: ${position.latitude}, Long: ${position.longitude}";
-
-      for (final number in emergencyContacts) {
-        await telephony.sendSms(to: number, message: message);
-      }
-
-      print("✅ SMS sent to emergency contacts.");
-    } catch (e) {
-      print("⚠️ Error sending SMS: $e");
-    }
-  }
-
-  void _openMessagesApp() async {
-    try {
-      Position? position;
-      try {
-        position = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.high);
-      } catch (e) {
-        print("⚠️ Could not get location: $e");
-      }
-
-      final message = position != null
-          ? "🚨 Emergency! Lat: ${position.latitude}, Long: ${position.longitude}"
-          : "🚨 Emergency! Please help!";
-
-      // Open Messages app with pre-filled text (iOS)
-      final Uri smsUri = Uri(
-        scheme: 'sms',
-        path: emergencyContacts.first,
-        queryParameters: {'body': message},
+  void _navigateToMap() {
+    setState(() {
+      _currentIndex = 1;
+    });
+    Future.delayed(Duration(milliseconds: 500), () {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => PoliceMapScreen()),
       );
-
-      if (await canLaunchUrl(smsUri)) {
-        await launchUrl(smsUri);
-        print("📱 Opened Messages app");
-      } else {
-        print("❌ Could not open Messages app");
-      }
-    } catch (e) {
-      print("⚠️ Error opening Messages: $e");
-    }
+    });
   }
 
-  void _handleRadarTap(BuildContext context) {
-    _launchDialer(); // Open dialer
-    _sendEmergencySMS(); // Send auto SMS
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => PoliceMapScreen()),
-    ); // how police station map
+  void _onTabSelected(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: GestureDetector(
-          onTap: () => _handleRadarTap(context),
-          child: Image.asset(
-            'assets/radar.png',
-            width: imageSize,
-            height: imageSize,
-          ),
-        ),
+      body: IndexedStack(index: _currentIndex, children: _pages),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: buildBottomNavBar(_currentIndex, _onTabSelected),
       ),
     );
   }
