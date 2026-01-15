@@ -1,14 +1,11 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'pages/police_map_screen.dart';
 import 'pages/newsletter_screen.dart';
 import 'pages/sos_screen.dart';
 import 'pages/settings_screen.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:telephony/telephony.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'widget/bottomnavbar.dart';
+import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -71,11 +68,20 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _pages),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: buildBottomNavBar(_currentIndex, _onTabSelected),
+    return LiquidGlassLayer(
+      child: Scaffold(
+        body: IndexedStack(index: _currentIndex, children: _pages),
+        backgroundColor: Colors.grey[600],
+        extendBody: true, // Crucial for the glass effect to see content behind
+        bottomNavigationBar: Padding(
+          padding: const EdgeInsets.only(
+          left: 16, 
+          right: 16, 
+          top: 16, 
+          bottom: 4, 
+        ),
+          child: buildBottomNavBar(context,_currentIndex, _onTabSelected),
+        ),
       ),
     );
   }

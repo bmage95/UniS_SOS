@@ -1,25 +1,30 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
+import 'package:sos_unis/custom/custom_glass_bar.dart';
 
-Widget buildBottomNavBar(int currentIndex, ValueChanged<int> onTap) {
-  return ClipRRect(
-    borderRadius: BorderRadius.circular(30),
-    child: BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-      child: BottomNavigationBar(
-        currentIndex: currentIndex,
-        onTap: onTap,
-        backgroundColor: Colors.white.withOpacity(0.1),
-        elevation: 0,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.blueAccent,
-        unselectedItemColor: Colors.grey.shade600,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.newspaper), label: 'News'),
-          BottomNavigationBarItem(icon: Icon(Icons.sos), label: 'SOS'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
-        ],
+Widget buildBottomNavBar(BuildContext context, int currentIndex, ValueChanged<int> onTap) {
+  return LiquidGlassBottomBar(
+    //margin: EdgeInsets.zero, 
+    height: 60,
+    barBlurSigma: 5,
+    activeBlurSigma: 20,
+    currentIndex: currentIndex,
+    onTap: onTap,
+    activeColor: Colors.blueAccent,
+    showLabels: false,
+    items: [
+      LiquidGlassBottomBarItem(
+        imagePath: 'assets/icons/newspaper.svg',
+        label: 'News'
       ),
-    ),
+      LiquidGlassBottomBarItem(
+        imagePath: 'assets/icons/sos.svg',
+        label: 'SOS',
+        iconSize: 28.0,
+      ),
+      LiquidGlassBottomBarItem(
+        imagePath: 'assets/icons/gear.svg',
+        label: 'Settings'
+      ),
+    ],
   );
 }
