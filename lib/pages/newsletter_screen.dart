@@ -27,7 +27,7 @@ class _InShortsScreenState extends State<InShortsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('inshorts'),
+        title: Text('UniSphere -News'),
         elevation: 0,
       ),
       body: PageView.builder(

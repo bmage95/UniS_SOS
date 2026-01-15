@@ -19,6 +19,9 @@ dependencies:
   telephony: ^0.2.0
   flutter_dotenv: ^6.0.0
   liquid_glass_renderer: ^0.2.0-dev.4
+  liquid_glass_bottom_bar: ^0.0.6
+  flutter_svg: ^2.2.3
+  firebase_core: ^4.3.0
 
 dev_dependencies:
   flutter_test:
@@ -29,5 +32,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-     - assets/radar.png
+     - assets/
+     - assets/icons/
      - .env
