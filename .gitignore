@@ -47,7 +47,10 @@ app.*.map.json
 
 firebase.json
 firebase_options.dart
+
+# Firebase config files (keep out of VCS)
 google-services.json
-google-services.json
-google-services.json
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+macos/Runner/GoogleService-Info.plist
 
