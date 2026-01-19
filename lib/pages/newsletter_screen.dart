@@ -1,95 +1,98 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+import 'package:sos_unis/widget/newstemplate.dart';
 
-class InShortsScreen extends StatefulWidget {
+class NewsletterPage extends StatefulWidget {
+  const NewsletterPage({super.key});
+
   @override
-  State<InShortsScreen> createState() => _InShortsScreenState();
+  State<NewsletterPage> createState() => _NewsletterPageState();
 }
 
-class _InShortsScreenState extends State<InShortsScreen> {
-  final List<NewsArticle> articles = [
-    NewsArticle(
-      title: 'Breaking News Title',
-      content: 'This is the news content summary that appears on the Inshorts style card.',
-      source: 'TechNews',
-      time: '2 hours ago',
-      category: 'Tech',
-    ),
-    NewsArticle(
-      title: 'Another News Story',
-      content: 'Read the brief summary of this important news event in just one line.',
-      source: 'WorldNews',
-      time: '4 hours ago',
-      category: 'World',
-    ),
-  ];
+class _NewsletterPageState extends State<NewsletterPage> {
+  String get _todaysCollectionId {
+    final now = DateTime.now();
+    final formattedDate = DateFormat('ddMMyy').format(now); 
+    return 'news_$formattedDate';
+  }
 
   @override
   Widget build(BuildContext context) {
+    final Query<Map<String, dynamic>> newsQuery = FirebaseFirestore.instance
+        .collection('news')
+        .doc('newsletter')
+        .collection(_todaysCollectionId); 
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('UniSphere -News'),
+        title: const Text('UniSphere Newsletter'),
+        centerTitle: true,
         elevation: 0,
       ),
-      body: PageView.builder(
-        scrollDirection: Axis.vertical,
-        itemCount: articles.length,
-        itemBuilder: (context, index) {
-          return NewsCard(article: articles[index]);
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: newsQuery.snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const Center(child: Text('Error loading newsletter'));
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final data = snapshot.data?.docs;
+
+          if (data == null || data.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.mark_email_read_outlined, size: 60, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text('No updates for today yet!', style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            );
+          }
+
+          return PageView.builder(
+            scrollDirection: Axis.vertical,
+            itemCount: data.length,
+            itemBuilder: (context, index) {
+              final article = NewsArticle.fromFirestore(data[index]);
+              return NewsCard(article: article);
+            },
+          );
         },
       ),
     );
   }
 }
 
-class NewsCard extends StatelessWidget {
-  final NewsArticle article;
-
-  const NewsCard({required this.article});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(16),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            article.title,
-            style: Theme.of(context).textTheme.headlineSmall,
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 24),
-          Text(
-            article.content,
-            style: Theme.of(context).textTheme.bodyLarge,
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 40),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(article.source, style: TextStyle(fontWeight: FontWeight.bold)),
-              Text(article.time, style: TextStyle(color: Colors.grey)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class NewsArticle {
-  final String title;
-  final String content;
-  final String source;
-  final String time;
-  final String category;
+  final String header;
+  final String body;
+  final String imageUrl;
+  final String college;
+  final DateTime timestamp;
 
   NewsArticle({
-    required this.title,
-    required this.content,
-    required this.source,
-    required this.time,
-    required this.category,
+    required this.header,
+    required this.body,
+    required this.imageUrl,
+    required this.college,
+    required this.timestamp,
   });
+
+  factory NewsArticle.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return NewsArticle(
+      header: data['header'] ?? 'No Title',
+      body: data['body'] ?? '',
+      imageUrl: data['image_url'] ?? '', 
+      college: data['college'] ?? 'UniSphere',
+      timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
 }

@@ -52,7 +52,7 @@ class _HomeShellState extends State<HomeShell> {
   int _currentIndex = 0;
 
   late final List<Widget> _pages = [
-    InShortsScreen(),
+    const NewsletterPage(),
     RadarHomePage(onNavigateToMap: _navigateToMap),
     const SettingsScreen(),
   ];
@@ -80,7 +80,7 @@ class _HomeShellState extends State<HomeShell> {
       child: Scaffold(
         body: IndexedStack(index: _currentIndex, children: _pages),
         backgroundColor: Colors.grey[600],
-        extendBody: true, // Crucial for the glass effect to see content behind
+        extendBody: true, 
         bottomNavigationBar: Padding(
           padding: const EdgeInsets.only(
           left: 16, 
